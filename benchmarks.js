@@ -95,14 +95,16 @@ function runBenchmarks() {
             test: gibberishTest(),
             onSuccess: function () {
                 Gibberish.clear();
-            }
+            },
+            numReps: 100
         },
         {
             name: "Flocking",
             test: flockingTest(),
             onSuccess: function () {
                 flock.enviro.shared.stop();
-            }
+            },
+            numReps: 100
         }
     ], true);
 }
