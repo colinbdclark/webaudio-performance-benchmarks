@@ -16,8 +16,9 @@ function makeMockAudioProcessEvent(blockSize) {
     return e;
 }
 
-function scriptProcessorNodeTester(audioProcessHandlerFn, blockSize, numSamples) {
+function scriptProcessorNodeTester(jsNode, audioProcessHandlerFn, blockSize, numSamples) {
     var that = {
+        jsNode: jsNode,
         audioProcessHandlerFn: audioProcessHandlerFn,
         numSamples: numSamples || (44100 * 10), // Ten seconds worth of samples by default.
         blockSize: blockSize,
@@ -30,16 +31,17 @@ function scriptProcessorNodeTester(audioProcessHandlerFn, blockSize, numSamples)
     that.test = function () {
         var e = that.mockEvent,
             processor = that.audioProcessHandlerFn,
+            jsNode = that.jsNode,
             numCalls = Math.ceil(that.numSamples / that.blockSize),
             i;
 
         for (i = 0; i < numCalls; i++) {
-            processor(e);
+            processor.call(jsNode, e);
         }
     };
 
     return that;
-};
+}
 
 function flockingTest() {
     flock.init({
@@ -63,13 +65,15 @@ function flockingTest() {
         }
     });
 
+    var jsNode = flock.enviro.shared.audioStrategy.jsNode,
+        writeSamplesFn = flock.audioStrategy.web.writeSamples,
+        timer = scriptProcessorNodeTester(jsNode, writeSamplesFn, 1024, 44100);
+
     synth.play();
-    flock.enviro.shared.audioStrategy.jsNode.disconnect(0);
-    var writeSamplesFn = flock.enviro.shared.audioStrategy.writeSamples;
-    var timer = scriptProcessorNodeTester(writeSamplesFn, 1024, 44100);
+    jsNode.disconnect(0);
 
     return timer.test;
-};
+}
 
 function gibberishTest() {
     Gibberish.init(1024);
@@ -83,7 +87,7 @@ function gibberishTest() {
     var sin = new Gibberish.Sine( Add(mod1, 440), 0.25 ).connect();
 
     Gibberish.node.disconnect(0);
-    var timer = scriptProcessorNodeTester(Gibberish.audioProcess, 1024, 44100);
+    var timer = scriptProcessorNodeTester(null, Gibberish.audioProcess, 1024, 44100);
 
     return timer.test;
 };
